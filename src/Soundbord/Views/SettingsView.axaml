@@ -1,0 +1,401 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:Soundbord.ViewModels"
+             xmlns:audio="clr-namespace:Soundbord.Audio"
+             mc:Ignorable="d"
+             x:Class="Soundbord.Views.SettingsView"
+             x:DataType="vm:SettingsViewModel">
+
+  <UserControl.Resources>
+    <DataTemplate x:Key="DeviceTemplate" x:DataType="audio:AudioDevice">
+      <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+    </DataTemplate>
+  </UserControl.Resources>
+
+  <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+    <StackPanel Spacing="14" MaxWidth="760" HorizontalAlignment="Left">
+
+      <!-- ==================== Virtuelles Kabel ==================== -->
+      <Border Classes="card">
+        <StackPanel Spacing="14">
+
+          <StackPanel Orientation="Horizontal" Spacing="10">
+            <PathIcon Data="{StaticResource IconLink}" Classes="muted" VerticalAlignment="Center" />
+            <TextBlock Classes="h2" Text="Virtuelles Kabel" VerticalAlignment="Center" />
+          </StackPanel>
+
+          <Border Background="{DynamicResource BgElevatedBrush}"
+                  CornerRadius="{DynamicResource RadiusMd}"
+                  Padding="14">
+            <StackPanel Spacing="8">
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <PathIcon Data="{StaticResource IconCheck}"
+                          Width="15" Height="15"
+                          Foreground="{DynamicResource SuccessBrush}"
+                          VerticalAlignment="Center"
+                          IsVisible="{Binding CableDetected}" />
+                <PathIcon Data="{StaticResource IconWarn}"
+                          Width="15" Height="15"
+                          Foreground="{DynamicResource WarningBrush}"
+                          VerticalAlignment="Center"
+                          IsVisible="{Binding !CableDetected}" />
+                <TextBlock Text="{Binding CableTitle}" Classes="label" VerticalAlignment="Center" />
+              </StackPanel>
+
+              <TextBlock Text="{Binding CableStatusText}" Classes="caption" />
+
+              <Border IsVisible="{Binding ShowCableInstruction}"
+                      Background="{DynamicResource AccentSoftBrush}"
+                      CornerRadius="{DynamicResource RadiusSm}"
+                      Padding="10,8"
+                      Margin="0,4,0,0">
+                <TextBlock Text="{Binding CableInstruction}" Classes="caption"
+                           Foreground="{DynamicResource TextPrimaryBrush}" />
+              </Border>
+            </StackPanel>
+          </Border>
+
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <Button Classes="accent"
+                    Command="{Binding AutoSetupCommand}"
+                    Content="Automatisch einrichten"
+                    ToolTip.Tip="Setzt Ausgabe, Mithören und Mikrofon in einem Schritt" />
+            <Button Command="{Binding RefreshDevicesCommand}">
+              <StackPanel Orientation="Horizontal" Spacing="7">
+                <PathIcon Data="{StaticResource IconRefresh}" Classes="small" />
+                <TextBlock Text="Erneut suchen" />
+              </StackPanel>
+            </Button>
+            <Button Classes="ghost"
+                    Command="{Binding OpenCableDownloadCommand}"
+                    Content="VB-CABLE herunterladen"
+                    IsVisible="{Binding !CableDetected}" />
+          </StackPanel>
+
+          <Border IsVisible="{Binding SetupMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                  Background="{DynamicResource BgBaseBrush}"
+                  BorderThickness="1"
+                  BorderBrush="{DynamicResource BorderBrush}"
+                  CornerRadius="{DynamicResource RadiusSm}"
+                  Padding="10,8">
+            <TextBlock Text="{Binding SetupMessage}" Classes="caption" />
+          </Border>
+
+        </StackPanel>
+      </Border>
+
+      <!-- ==================== Ausgabe ==================== -->
+      <Border Classes="card">
+        <StackPanel Spacing="16">
+
+          <StackPanel Orientation="Horizontal" Spacing="10">
+            <PathIcon Data="{StaticResource IconSpeaker}" Classes="muted" VerticalAlignment="Center" />
+            <TextBlock Classes="h2" Text="Ausgabe" VerticalAlignment="Center" />
+          </StackPanel>
+
+          <Grid ColumnDefinitions="230,*">
+            <StackPanel Grid.Column="0" VerticalAlignment="Top" Margin="0,4,16,0">
+              <TextBlock Classes="label" Text="An andere Programme" />
+              <TextBlock Classes="caption" Text="Das virtuelle Kabel, das Discord als Mikrofon sieht." />
+            </StackPanel>
+            <StackPanel Grid.Column="1" Spacing="8">
+              <ToggleSwitch IsChecked="{Binding VirtualOutputEnabled}"
+                            OnContent="Aktiv" OffContent="Aus" />
+              <ComboBox ItemsSource="{Binding RenderDevices}"
+                        SelectedItem="{Binding SelectedVirtualDevice}"
+                        ItemTemplate="{StaticResource DeviceTemplate}"
+                        IsEnabled="{Binding VirtualOutputEnabled}" />
+            </StackPanel>
+          </Grid>
+
+          <Border Classes="divider" />
+
+          <Grid ColumnDefinitions="230,*">
+            <StackPanel Grid.Column="0" VerticalAlignment="Top" Margin="0,4,16,0">
+              <TextBlock Classes="label" Text="Mithören" />
+              <TextBlock Classes="caption" Text="Deine Kopfhörer. Ohne das hörst du die Sounds selbst nicht." />
+            </StackPanel>
+            <StackPanel Grid.Column="1" Spacing="8">
+              <ToggleSwitch IsChecked="{Binding MonitorEnabled}"
+                            OnContent="Aktiv" OffContent="Aus" />
+              <ComboBox ItemsSource="{Binding RenderDevices}"
+                        SelectedItem="{Binding SelectedMonitorDevice}"
+                        ItemTemplate="{StaticResource DeviceTemplate}"
+                        IsEnabled="{Binding MonitorEnabled}" />
+              <Grid ColumnDefinitions="*,Auto" IsEnabled="{Binding MonitorEnabled}">
+                <Slider Grid.Column="0" Minimum="0" Maximum="1" Value="{Binding MonitorVolume}" />
+                <TextBlock Grid.Column="1" Text="{Binding MonitorVolumeText}"
+                           Classes="caption mono" Width="42" VerticalAlignment="Center"
+                           TextAlignment="Right" />
+              </Grid>
+            </StackPanel>
+          </Grid>
+
+        </StackPanel>
+      </Border>
+
+      <!-- ==================== Mikrofon ==================== -->
+      <Border Classes="card">
+        <StackPanel Spacing="16">
+
+          <StackPanel Orientation="Horizontal" Spacing="10">
+            <PathIcon Data="{StaticResource IconMic}" Classes="muted" VerticalAlignment="Center" />
+            <TextBlock Classes="h2" Text="Mikrofon" VerticalAlignment="Center" />
+          </StackPanel>
+
+          <Grid ColumnDefinitions="230,*">
+            <StackPanel Grid.Column="0" VerticalAlignment="Top" Margin="0,4,16,0">
+              <TextBlock Classes="label" Text="Durchschleifen" />
+              <TextBlock Classes="caption"
+                         Text="Mischt dein Mikrofon in das virtuelle Kabel, damit du neben den Sounds sprechen kannst." />
+            </StackPanel>
+            <StackPanel Grid.Column="1" Spacing="8">
+              <ToggleSwitch IsChecked="{Binding MicPassthroughEnabled}"
+                            OnContent="Aktiv" OffContent="Aus" />
+
+              <Border IsVisible="{Binding ShowMicRoutingWarning}"
+                      Background="{DynamicResource WarningSoftBrush}"
+                      BorderBrush="{DynamicResource WarningBrush}"
+                      BorderThickness="1"
+                      CornerRadius="{DynamicResource RadiusSm}"
+                      Padding="10,8">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                  <PathIcon Data="{StaticResource IconWarn}"
+                            Width="14" Height="14"
+                            Foreground="{DynamicResource WarningBrush}"
+                            VerticalAlignment="Top"
+                            Margin="0,2,0,0" />
+                  <TextBlock Text="{Binding MicRoutingWarning}" Classes="caption" MaxWidth="340" />
+                </StackPanel>
+              </Border>
+
+              <ComboBox ItemsSource="{Binding CaptureDevices}"
+                        SelectedItem="{Binding SelectedMicDevice}"
+                        ItemTemplate="{StaticResource DeviceTemplate}"
+                        IsEnabled="{Binding MicPassthroughEnabled}" />
+              <Grid ColumnDefinitions="*,Auto" IsEnabled="{Binding MicPassthroughEnabled}">
+                <Slider Grid.Column="0" Minimum="0" Maximum="2" Value="{Binding MicVolume}" />
+                <TextBlock Grid.Column="1" Text="{Binding MicVolumeText}"
+                           Classes="caption mono" Width="42" VerticalAlignment="Center"
+                           TextAlignment="Right" />
+              </Grid>
+            </StackPanel>
+          </Grid>
+
+          <Border Classes="divider" />
+
+          <Grid ColumnDefinitions="230,*">
+            <StackPanel Grid.Column="0" VerticalAlignment="Top" Margin="0,4,16,0">
+              <TextBlock Classes="label" Text="Mich selbst mithören" />
+              <TextBlock Classes="caption"
+                         Text="Legt dein Mikrofon zusätzlich auf die Kopfhörer." />
+            </StackPanel>
+            <StackPanel Grid.Column="1" Spacing="6">
+              <ToggleSwitch IsChecked="{Binding MicMonitorEnabled}"
+                            IsEnabled="{Binding MicPassthroughEnabled}"
+                            OnContent="An" OffContent="Aus" />
+              <TextBlock Text="{Binding MicMonitorHint}" Classes="caption muted" MaxWidth="380" />
+            </StackPanel>
+          </Grid>
+
+        </StackPanel>
+      </Border>
+
+      <!-- ==================== Hotkeys ==================== -->
+      <Border Classes="card">
+        <StackPanel Spacing="16">
+
+          <StackPanel Orientation="Horizontal" Spacing="10">
+            <PathIcon Data="{StaticResource IconKeyboard}" Classes="muted" VerticalAlignment="Center" />
+            <TextBlock Classes="h2" Text="Hotkeys" VerticalAlignment="Center" />
+          </StackPanel>
+
+          <Grid ColumnDefinitions="230,*">
+            <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,16,0">
+              <TextBlock Classes="label" Text="Global aktiv" />
+              <TextBlock Classes="caption" Text="Reagiert auch, wenn ein anderes Fenster im Vordergrund ist." />
+            </StackPanel>
+            <ToggleSwitch Grid.Column="1" IsChecked="{Binding HotkeysEnabled}"
+                          OnContent="An" OffContent="Aus" VerticalAlignment="Center" />
+          </Grid>
+
+          <Border Classes="divider" />
+
+          <Grid ColumnDefinitions="230,*">
+            <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,16,0">
+              <TextBlock Classes="label" Text="Tasten blockieren" />
+              <TextBlock Classes="caption"
+                         Text="Belegte Tasten erreichen andere Programme nicht mehr. Aus lassen, wenn du normale Buchstaben als Hotkey nutzt." />
+            </StackPanel>
+            <ToggleSwitch Grid.Column="1" IsChecked="{Binding SuppressHotkeysInOtherApps}"
+                          OnContent="An" OffContent="Aus" VerticalAlignment="Center" />
+          </Grid>
+
+          <Border Classes="divider" />
+
+          <Grid ColumnDefinitions="230,*">
+            <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,16,0">
+              <TextBlock Classes="label" Text="Nur ein Sound gleichzeitig" />
+              <TextBlock Classes="caption" Text="Ein neuer Sound stoppt alle laufenden." />
+            </StackPanel>
+            <ToggleSwitch Grid.Column="1" IsChecked="{Binding StopOthersOnPlay}"
+                          OnContent="An" OffContent="Aus" VerticalAlignment="Center" />
+          </Grid>
+
+          <Border Classes="divider" />
+
+          <Grid ColumnDefinitions="230,*">
+            <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,16,0">
+              <TextBlock Classes="label" Text="Alles stoppen" />
+              <TextBlock Classes="caption" Text="Not-Aus für alle laufenden Sounds." />
+            </StackPanel>
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+              <Button Classes="chip"
+                      Command="{Binding RecordStopAllHotkeyCommand}"
+                      Content="{Binding StopAllHotkeyText}" />
+              <Button Classes="ghost icon" Width="30" Height="30"
+                      Command="{Binding ClearStopAllHotkeyCommand}"
+                      ToolTip.Tip="Hotkey entfernen">
+                <TextBlock Text="✕" FontSize="11" />
+              </Button>
+            </StackPanel>
+          </Grid>
+
+          <Border Classes="divider" />
+
+          <Grid ColumnDefinitions="230,*">
+            <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,16,0">
+              <TextBlock Classes="label" Text="Desktop-Ton umschalten" />
+              <TextBlock Classes="caption"
+                         Text="Schaltet den Tunnel aus dem Spiel heraus an und aus. Den Knopf dafür findest du oben in der Kopfzeile." />
+            </StackPanel>
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+              <Button Classes="chip"
+                      Command="{Binding RecordDesktopTunnelHotkeyCommand}"
+                      Content="{Binding DesktopTunnelHotkeyText}" />
+              <Button Classes="ghost icon" Width="30" Height="30"
+                      Command="{Binding ClearDesktopTunnelHotkeyCommand}"
+                      ToolTip.Tip="Hotkey entfernen">
+                <TextBlock Text="✕" FontSize="11" />
+              </Button>
+            </StackPanel>
+          </Grid>
+
+        </StackPanel>
+      </Border>
+
+      <!-- ==================== Audio ==================== -->
+      <Border Classes="card">
+        <StackPanel Spacing="16">
+
+          <StackPanel Orientation="Horizontal" Spacing="10">
+            <PathIcon Data="{StaticResource IconSliders}" Classes="muted" VerticalAlignment="Center" />
+            <TextBlock Classes="h2" Text="Audio &amp; Leistung" VerticalAlignment="Center" />
+          </StackPanel>
+
+          <Grid ColumnDefinitions="230,*">
+            <StackPanel Grid.Column="0" VerticalAlignment="Top" Margin="0,4,16,0">
+              <TextBlock Classes="label" Text="Puffer" />
+              <TextBlock Classes="caption"
+                         Text="Bestimmt die Verzögerung deiner Stimme. Kleiner ist besser, erhöht aber das Risiko für Aussetzer. 30 ms sind ein guter Startwert; bei Knacksern schrittweise erhöhen." />
+            </StackPanel>
+            <StackPanel Grid.Column="1" Spacing="6" VerticalAlignment="Center">
+              <Grid ColumnDefinitions="*,Auto">
+                <Slider Grid.Column="0" Minimum="10" Maximum="200" TickFrequency="5"
+                        IsSnapToTickEnabled="True" Value="{Binding BufferMilliseconds}" />
+                <TextBlock Grid.Column="1" Text="{Binding BufferText}"
+                           Classes="caption mono" Width="56" VerticalAlignment="Center"
+                           TextAlignment="Right" />
+              </Grid>
+              <TextBlock Text="{Binding MicLatencyText}" Classes="caption muted" />
+            </StackPanel>
+          </Grid>
+
+          <Border Classes="divider" />
+
+          <Grid ColumnDefinitions="230,*">
+            <StackPanel Grid.Column="0" VerticalAlignment="Top" Margin="0,4,16,0">
+              <TextBlock Classes="label" Text="Übersteuerungsschutz" />
+              <TextBlock Classes="caption"
+                         Text="Standardmäßig aus. Mehrere gleichzeitige Sounds und das Mikrofon können sich zu einem Pegel addieren, der zu laut für den Ausgang ist – Windows schneidet das hart ab, hörbar als Knistern. Eingeschaltet werden nur die Spitzen oberhalb von 80 % weich zusammengedrückt; darunter bleibt das Signal unangetastet." />
+            </StackPanel>
+            <StackPanel Grid.Column="1" Spacing="6">
+              <ToggleSwitch IsChecked="{Binding LimiterEnabled}" OnContent="An" OffContent="Aus" />
+              <Border IsVisible="{Binding LimiterEngaged}"
+                      Background="{DynamicResource WarningSoftBrush}"
+                      BorderBrush="{DynamicResource WarningBrush}"
+                      BorderThickness="1"
+                      CornerRadius="{DynamicResource RadiusSm}"
+                      Padding="10,7">
+                <TextBlock Classes="caption" MaxWidth="340"
+                           Text="Hat bereits eingegriffen. Wenn das häufig vorkommt, ist irgendwo zu viel Pegel – Sounds-Regler oder die Einzellautstärke etwas zurücknehmen." />
+              </Border>
+            </StackPanel>
+          </Grid>
+
+          <Border Classes="divider" />
+
+          <Grid ColumnDefinitions="230,*">
+            <StackPanel Grid.Column="0" VerticalAlignment="Top" Margin="0,4,16,0">
+              <TextBlock Classes="label" Text="Signalformat" />
+              <TextBlock Classes="caption"
+                         Text="Stimmen internes und Geräteformat überein, wird auf dem Weg zum Kabel nichts umgerechnet." />
+            </StackPanel>
+            <TextBlock Grid.Column="1"
+                       Text="{Binding FormatText}"
+                       Classes="caption mono"
+                       VerticalAlignment="Center"
+                       TextWrapping="Wrap" />
+          </Grid>
+
+          <Border Classes="divider" />
+
+          <Grid ColumnDefinitions="230,*">
+            <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,16,0">
+              <TextBlock Classes="label" Text="Arbeitsspeicher für Sounds" />
+              <TextBlock Classes="caption"
+                         Text="Kurze Sounds liegen dekodiert im RAM und starten dadurch ohne Verzögerung. Längere werden von der Platte gestreamt." />
+            </StackPanel>
+            <StackPanel Grid.Column="1" Spacing="6" VerticalAlignment="Center">
+              <Grid ColumnDefinitions="*,Auto">
+                <Slider Grid.Column="0" Minimum="32" Maximum="1024" TickFrequency="32"
+                        IsSnapToTickEnabled="True" Value="{Binding CacheBudgetMegabytes}" />
+                <TextBlock Grid.Column="1" Text="{Binding CacheText}"
+                           Classes="caption mono" Width="66" VerticalAlignment="Center"
+                           TextAlignment="Right" />
+              </Grid>
+              <StackPanel Orientation="Horizontal" Spacing="10">
+                <TextBlock Text="{Binding CacheUsageText}" Classes="caption muted" VerticalAlignment="Center" />
+                <Button Classes="ghost" Command="{Binding ClearCacheCommand}" Content="Leeren"
+                        Padding="8,4" MinHeight="0" FontSize="12" />
+              </StackPanel>
+            </StackPanel>
+          </Grid>
+
+        </StackPanel>
+      </Border>
+
+      <!-- ==================== Daten ==================== -->
+      <Border Classes="card">
+        <Grid ColumnDefinitions="230,*">
+          <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,16,0">
+            <TextBlock Classes="label" Text="Einstellungen &amp; Liste" />
+            <TextBlock Classes="caption" Text="Liegen als lesbares JSON in deinem AppData-Ordner." />
+          </StackPanel>
+          <Button Grid.Column="1"
+                  HorizontalAlignment="Left"
+                  VerticalAlignment="Center"
+                  Command="{Binding OpenDataFolderCommand}">
+            <StackPanel Orientation="Horizontal" Spacing="7">
+              <PathIcon Data="{StaticResource IconFolder}" Classes="small" />
+              <TextBlock Text="Ordner öffnen" />
+            </StackPanel>
+          </Button>
+        </Grid>
+      </Border>
+
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

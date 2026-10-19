@@ -1,0 +1,292 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="clr-namespace:Soundbord.ViewModels"
+        xmlns:views="clr-namespace:Soundbord.Views"
+        xmlns:audio="clr-namespace:Soundbord.Audio"
+        mc:Ignorable="d"
+        x:Class="Soundbord.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Title="Soundbord"
+        Width="1240" Height="880"
+        MinWidth="1040" MinHeight="640"
+        Background="{DynamicResource BgBaseBrush}"
+        Icon="/Assets/app.png"
+        WindowStartupLocation="CenterScreen">
+
+  <Window.Resources>
+    <DataTemplate x:Key="MicDeviceTemplate" x:DataType="audio:AudioDevice">
+      <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+    </DataTemplate>
+
+    <DataTemplate x:Key="AudioAppTemplate" x:DataType="audio:AudioApp">
+      <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+    </DataTemplate>
+  </Window.Resources>
+
+  <DockPanel>
+
+    <!-- ============ Kopfzeile ============ -->
+    <Border DockPanel.Dock="Top"
+            Background="{DynamicResource BgSurfaceBrush}"
+            BorderBrush="{DynamicResource BorderBrush}"
+            BorderThickness="0,0,0,1"
+            Padding="20,12">
+      <StackPanel Spacing="11">
+
+        <!-- Zeile 1: Marke, Status, Pegel -->
+        <Grid ColumnDefinitions="Auto,*,Auto">
+
+          <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+            <Border Width="36" Height="36"
+                    CornerRadius="10"
+                    Background="{StaticResource AccentGradientBrush}">
+              <PathIcon Data="{StaticResource IconWave}"
+                        Width="19" Height="19"
+                        Foreground="#FFFFFF" />
+            </Border>
+            <StackPanel VerticalAlignment="Center">
+              <TextBlock Classes="h1" Text="Soundbord" />
+              <TextBlock Classes="caption"
+                         Text="{Binding StatusDetail}"
+                         MaxWidth="260"
+                         TextTrimming="CharacterEllipsis"
+                         TextWrapping="NoWrap"
+                         ToolTip.Tip="{Binding StatusDetail}" />
+            </StackPanel>
+          </StackPanel>
+
+          <Border Grid.Column="1"
+                  Classes="pill"
+                  Classes.ok="{Binding IsStatusGood}"
+                  Classes.warn="{Binding IsStatusWarning}"
+                  Classes.bad="{Binding IsStatusBad}"
+                  HorizontalAlignment="Left"
+                  VerticalAlignment="Center"
+                  Margin="16,0,16,0">
+            <StackPanel Orientation="Horizontal" Spacing="7">
+              <Ellipse Width="7" Height="7" VerticalAlignment="Center"
+                       Fill="{DynamicResource SuccessBrush}"
+                       IsVisible="{Binding IsStatusGood}" />
+              <Ellipse Width="7" Height="7" VerticalAlignment="Center"
+                       Fill="{DynamicResource WarningBrush}"
+                       IsVisible="{Binding IsStatusWarning}" />
+              <Ellipse Width="7" Height="7" VerticalAlignment="Center"
+                       Fill="{DynamicResource DangerBrush}"
+                       IsVisible="{Binding IsStatusBad}" />
+              <TextBlock Text="{Binding StatusText}" FontSize="12" FontWeight="500"
+                         VerticalAlignment="Center"
+                         TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
+            </StackPanel>
+          </Border>
+
+          <!-- Sounds und Mikrofon sind getrennte Wege im Graphen, deshalb auch
+               zwei eigenständige Regler. -->
+          <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="18" VerticalAlignment="Center">
+
+            <StackPanel Spacing="1" VerticalAlignment="Center">
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <PathIcon Data="{StaticResource IconSpeaker}" Classes="muted"
+                          Width="12" Height="12" VerticalAlignment="Center" />
+                <TextBlock Text="Sounds" Classes="caption" FontSize="11" VerticalAlignment="Center" />
+              </StackPanel>
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <Slider Width="100" Minimum="0" Maximum="1"
+                        VerticalAlignment="Center"
+                        Value="{Binding MasterVolume}"
+                        ToolTip.Tip="{Binding MasterVolumeTip}" />
+                <TextBlock Text="{Binding MasterVolumeText}"
+                           Classes="caption mono" Width="34"
+                           VerticalAlignment="Center" />
+              </StackPanel>
+            </StackPanel>
+
+            <StackPanel Spacing="1" VerticalAlignment="Center"
+                        IsEnabled="{Binding MicSliderEnabled}">
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <PathIcon Data="{StaticResource IconMic}" Classes="muted"
+                          Width="12" Height="12" VerticalAlignment="Center" />
+                <TextBlock Text="Mikrofon" Classes="caption" FontSize="11" VerticalAlignment="Center" />
+              </StackPanel>
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <Slider Width="100" Minimum="0" Maximum="2"
+                        VerticalAlignment="Center"
+                        Value="{Binding MicVolume}"
+                        ToolTip.Tip="{Binding MicVolumeTip}" />
+                <TextBlock Text="{Binding MicVolumeText}"
+                           Classes="caption mono" Width="34"
+                           VerticalAlignment="Center" />
+              </StackPanel>
+            </StackPanel>
+
+            <Button Command="{Binding StopAllCommand}" ToolTip.Tip="Alle laufenden Sounds stoppen">
+              <StackPanel Orientation="Horizontal" Spacing="7">
+                <PathIcon Data="{StaticResource IconStop}" Classes="small" />
+                <TextBlock Text="Alle stoppen" />
+              </StackPanel>
+            </Button>
+          </StackPanel>
+
+        </Grid>
+
+        <!-- Zeile 2: Windows-Standardmikrofon, Desktop-Ton und Wiedergabe -->
+        <Grid ColumnDefinitions="Auto,Auto,*">
+
+          <StackPanel Grid.Column="0"
+                      Orientation="Horizontal" Spacing="8"
+                      VerticalAlignment="Center"
+                      IsVisible="{Binding DefaultMicSupported}"
+                      ToolTip.Tip="Setzt das Standard-Aufnahmegerät von Windows. Programme wie Discord, die kein eigenes Gerät anbieten, folgen dieser Einstellung.">
+            <PathIcon Data="{StaticResource IconMic}" Classes="muted small" VerticalAlignment="Center" />
+            <TextBlock Text="Windows-Standardmikrofon" Classes="caption" VerticalAlignment="Center" />
+            <ComboBox Width="210"
+                      ItemsSource="{Binding DefaultMicDevices}"
+                      SelectedItem="{Binding SelectedDefaultMic}"
+                      ItemTemplate="{StaticResource MicDeviceTemplate}" />
+            <TextBlock Text="{Binding DefaultMicMessage}"
+                       Classes="caption"
+                       Foreground="{DynamicResource DangerBrush}"
+                       MaxWidth="220"
+                       TextTrimming="CharacterEllipsis"
+                       IsVisible="{Binding DefaultMicMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+          </StackPanel>
+
+          <!-- Ton einer anderen Anwendung ins Kabel schleifen. Bewusst hier oben und
+               nicht in den Einstellungen – das ist ein Handgriff im Gespräch, keine
+               Konfiguration. -->
+          <StackPanel Grid.Column="1"
+                      Orientation="Horizontal" Spacing="8"
+                      VerticalAlignment="Center"
+                      Margin="14,0,0,0">
+
+            <Button Classes.accent="{Binding DesktopTunnelActive}"
+                    Command="{Binding ToggleDesktopTunnelCommand}"
+                    ToolTip.Tip="{Binding DesktopTunnelTip}">
+              <StackPanel Orientation="Horizontal" Spacing="7">
+                <PathIcon Data="{StaticResource IconMonitor}" Classes="small"
+                          Foreground="{Binding $parent[Button].Foreground}" />
+                <TextBlock Text="{Binding DesktopTunnelLabel}" />
+              </StackPanel>
+            </Button>
+
+            <!-- Welche Anwendung übertragen wird. Die Liste füllt sich beim Aufklappen. -->
+            <ComboBox x:Name="AudioAppPicker"
+                      Width="190"
+                      ItemsSource="{Binding AudioApps}"
+                      SelectedItem="{Binding SelectedAudioApp}"
+                      ItemTemplate="{StaticResource AudioAppTemplate}"
+                      ToolTip.Tip="Welche Anwendung übertragen wird. Zur Auswahl stehen alle laufenden Programme mit Fenster – die Anwendung muss noch keinen Ton abspielen." />
+
+            <!-- Eigener Pegel, damit die Musik die Stimme nicht zudeckt.
+                 Die feste Höhe hält die Zeile stabil, während der Regler darin
+                 seine volle Höhe behält und mittig sitzt. -->
+            <StackPanel Orientation="Horizontal" Spacing="6"
+                        Height="36"
+                        VerticalAlignment="Center"
+                        IsVisible="{Binding DesktopTunnelActive}">
+              <Slider Classes="compact"
+                      Width="80" Minimum="0" Maximum="2"
+                      VerticalAlignment="Center"
+                      Value="{Binding DesktopVolume}"
+                      ToolTip.Tip="{Binding DesktopVolumeTip}" />
+              <TextBlock Text="{Binding DesktopVolumeText}"
+                         Classes="caption mono" Width="34"
+                         VerticalAlignment="Center" />
+            </StackPanel>
+          </StackPanel>
+
+          <!-- Wiedergabeleiste – erscheint nur, wenn etwas läuft -->
+          <Border Grid.Column="2"
+                  Classes="player"
+                  Margin="16,0,0,0"
+                  IsVisible="{Binding HasPlayback}">
+            <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto,Auto" >
+
+              <Button Grid.Column="0"
+                      Classes="play playing"
+                      Width="32" Height="32" CornerRadius="16"
+                      Command="{Binding TogglePauseCommand}"
+                      ToolTip.Tip="Pause / Fortsetzen">
+                <Panel>
+                  <PathIcon Data="{StaticResource IconPause}" Width="12" Height="12"
+                            Foreground="#FFFFFF"
+                            IsVisible="{Binding !IsPaused}" />
+                  <PathIcon Data="{StaticResource IconPlay}" Width="12" Height="12"
+                            Margin="2,0,0,0"
+                            Foreground="#FFFFFF"
+                            IsVisible="{Binding IsPaused}" />
+                </Panel>
+              </Button>
+
+              <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6"
+                          VerticalAlignment="Center" Margin="12,0,12,0">
+                <TextBlock Text="{Binding NowPlayingName}"
+                           Classes="label"
+                           MaxWidth="240"
+                           TextTrimming="CharacterEllipsis"
+                           VerticalAlignment="Center" />
+                <PathIcon Data="{StaticResource IconLoop}" Width="12" Height="12"
+                          Foreground="{DynamicResource AccentHoverBrush}"
+                          VerticalAlignment="Center"
+                          IsVisible="{Binding NowPlayingLooping}"
+                          ToolTip.Tip="Wiederholt sich" />
+              </StackPanel>
+
+              <ProgressBar Grid.Column="2"
+                           Classes="player"
+                           Minimum="0" Maximum="1"
+                           Value="{Binding NowPlayingProgress}"
+                           VerticalAlignment="Center" />
+
+              <TextBlock Grid.Column="3"
+                         Text="{Binding NowPlayingTime}"
+                         Classes="caption mono"
+                         VerticalAlignment="Center"
+                         Margin="12,0,0,0" />
+
+              <Border Grid.Column="4"
+                      Classes="pill"
+                      Margin="10,0,0,0"
+                      VerticalAlignment="Center"
+                      IsVisible="{Binding HasExtraPlayback}"
+                      ToolTip.Tip="Weitere Sounds laufen gleichzeitig">
+                <TextBlock Text="{Binding ExtraPlaybackText}" Classes="caption mono" />
+              </Border>
+
+              <Button Grid.Column="5"
+                      Classes="ghost icon"
+                      Width="30" Height="30"
+                      Margin="8,0,0,0"
+                      Command="{Binding StopCurrentCommand}"
+                      ToolTip.Tip="Diesen Sound stoppen">
+                <PathIcon Data="{StaticResource IconStop}" Width="12" Height="12"
+                          Foreground="{Binding $parent[Button].Foreground}" />
+              </Button>
+
+            </Grid>
+          </Border>
+
+        </Grid>
+
+      </StackPanel>
+    </Border>
+
+    <!-- ============ Inhalt ============ -->
+    <TabControl x:Name="Tabs"
+                SelectedIndex="{Binding SelectedTab}"
+                Margin="20,8,20,0"
+                Padding="0,14,0,16">
+
+      <TabItem Header="Sounds">
+        <views:SoundboardView DataContext="{Binding Soundboard}" />
+      </TabItem>
+
+      <TabItem Header="Einstellungen">
+        <views:SettingsView DataContext="{Binding Settings}" />
+      </TabItem>
+
+    </TabControl>
+
+  </DockPanel>
+</Window>

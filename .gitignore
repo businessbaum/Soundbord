@@ -1,0 +1,19 @@
+# Build
+bin/
+obj/
+dist/
+
+# Visual Studio / Rider / VS Code
+.vs/
+.idea/
+*.user
+*.suo
+
+# Sonstiges
+*.log
+
+# Claude Code lokal
+.claude/settings.local.json
+
+# Screenshot with private sound names, kept out of the repo
+docs/sounds.png
